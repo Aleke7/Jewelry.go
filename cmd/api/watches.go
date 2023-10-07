@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"jewelry.abgdrv.com/internal/data"
 	"net/http"
+	"time"
 )
 
 // POST "/v1/watches"
@@ -17,5 +19,19 @@ func (app *application) showWatchHandler(w http.ResponseWriter, r *http.Request)
 		http.NotFound(w, r)
 		return
 	}
-	fmt.Fprintf(w, "show the details of watch %d\n", id)
+
+	watch := data.Watch{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Brand:     "Rolex",
+		Model:     "Submariner",
+		DialColor: "Black",
+		StrapType: "Stainless Steel",
+		Price:     9999.99,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"watch": watch}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
