@@ -29,7 +29,7 @@ func main() {
 	var cfg config
 
 	// Parse configuration
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+	flag.IntVar(&cfg.port, "port", 4001, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.Parse()
 
@@ -39,16 +39,10 @@ func main() {
 	// Declare instance of application
 	app := application{config: cfg, logger: logger}
 
-	// Declare servemux (router)
-	// Handler = controller
-	// servemux = router (mapping URL-handler)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/healthcheck/", app.healthcheckHandler)
-
 	// Declare HTTP server
 	srv := http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      mux,
+		Handler:      app.routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
