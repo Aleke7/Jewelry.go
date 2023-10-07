@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"strconv"
 )
 
 // POST "/v1/watches"
@@ -14,12 +12,8 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 
 // GET "/v1/watches/:id"
 func (app *application) showWatchHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse URL params
-	params := httprouter.ParamsFromContext(r.Context())
-
-	// Get id param
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err != nil || id < 1 {
+	id, err := app.readIDParam(r)
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
