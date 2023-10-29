@@ -6,6 +6,7 @@ import (
 	"jewelry.abgdrv.com/internal/data"
 	"jewelry.abgdrv.com/internal/validator"
 	"net/http"
+	"strconv"
 )
 
 // POST "/v1/watches"
@@ -16,7 +17,7 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 		Model     string  `json:"model,omitempty"`
 		DialColor string  `json:"dial_color"`
 		StrapType string  `json:"strap_type"`
-		Diameter  int64   `json:"diameter"`
+		Diameter  int8    `json:"diameter"`
 		Energy    string  `json:"energy"`
 		Gender    string  `json:"gender"`
 		Price     float64 `json:"price"`
@@ -42,7 +43,6 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	v := validator.New()
-
 	if data.ValidateWatch(v, watch); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -108,16 +108,23 @@ func (app *application) updateWatchHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if r.Header.Get("X-Expected-Version") != "" {
+		if strconv.FormatInt(int64(watch.Version), 32) != r.Header.Get("X-Expected-Version") {
+			app.editConflictResponse(w, r)
+			return
+		}
+	}
+
 	var input struct {
-		Brand     string  `json:"brand"`
-		Model     string  `json:"model,omitempty"`
-		DialColor string  `json:"dial_color"`
-		StrapType string  `json:"strap_type"`
-		Diameter  int64   `json:"diameter"`
-		Energy    string  `json:"energy"`
-		Gender    string  `json:"gender"`
-		Price     float64 `json:"price"`
-		ImageURL  string  `json:"image_url"`
+		Brand     *string  `json:"brand"`
+		Model     *string  `json:"model,omitempty"`
+		DialColor *string  `json:"dial_color"`
+		StrapType *string  `json:"strap_type"`
+		Diameter  *int8    `json:"diameter"`
+		Energy    *string  `json:"energy"`
+		Gender    *string  `json:"gender"`
+		Price     *float64 `json:"price"`
+		ImageURL  *string  `json:"image_url"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -126,15 +133,33 @@ func (app *application) updateWatchHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	watch.Brand = input.Brand
-	watch.Model = input.Model
-	watch.DialColor = input.DialColor
-	watch.StrapType = input.StrapType
-	watch.Diameter = input.Diameter
-	watch.Energy = input.Energy
-	watch.Gender = input.Gender
-	watch.Price = input.Price
-	watch.ImageURL = input.ImageURL
+	if input.Brand != nil {
+		watch.Brand = *input.Brand
+	}
+	if input.Model != nil {
+		watch.Model = *input.Model
+	}
+	if input.DialColor != nil {
+		watch.DialColor = *input.DialColor
+	}
+	if input.StrapType != nil {
+		watch.StrapType = *input.StrapType
+	}
+	if input.Diameter != nil {
+		watch.Diameter = *input.Diameter
+	}
+	if input.Energy != nil {
+		watch.Energy = *input.Energy
+	}
+	if input.Gender != nil {
+		watch.Gender = *input.Gender
+	}
+	if input.Price != nil {
+		watch.Price = *input.Price
+	}
+	if input.ImageURL != nil {
+		watch.ImageURL = *input.ImageURL
+	}
 
 	v := validator.New()
 	if data.ValidateWatch(v, watch); !v.Valid() {
@@ -144,7 +169,12 @@ func (app *application) updateWatchHandler(w http.ResponseWriter, r *http.Reques
 
 	err = app.models.Watches.Update(watch)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -176,4 +206,43 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Brand     string
+		DialColor string
+		Filters   data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Brand = app.readString(qs, "brand", "")
+	input.DialColor = app.readString(qs, "dial_color", "")
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+
+	input.Filters.SortSafelist = []string{"id", "brand", "dial_color", "-id", "-brand", "-dial_color"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	watches, err := app.models.Watches.GetAll(input.Brand, input.DialColor, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"watches": watches}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	fmt.Fprintf(w, "%+v\n", input)
 }

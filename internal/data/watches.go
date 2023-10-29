@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"jewelry.abgdrv.com/internal/validator"
@@ -15,11 +16,12 @@ type Watch struct {
 	Model     string    `json:"model,omitempty"`
 	DialColor string    `json:"dial_color"`
 	StrapType string    `json:"strap_type"`
-	Diameter  int64     `json:"diameter"`
+	Diameter  int8      `json:"diameter"`
 	Energy    string    `json:"energy"`
 	Gender    string    `json:"gender"`
 	Price     float64   `json:"price"`
 	ImageURL  string    `json:"image_url"`
+	Version   int32     `json:"version"`
 }
 
 func ValidateWatch(v *validator.Validator, watch *Watch) {
@@ -54,7 +56,7 @@ type WatchModel struct {
 func (w WatchModel) Insert(watch *Watch) error {
 	query := `INSERT INTO watches (brand, model, dial_color, strap_type, diameter, energy, gender, price, image_url) 
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-				RETURNING id, created_at`
+				RETURNING id, created_at, version`
 
 	args := []interface{}{
 		watch.Brand,
@@ -68,7 +70,10 @@ func (w WatchModel) Insert(watch *Watch) error {
 		watch.ImageURL,
 	}
 
-	return w.DB.QueryRow(query, args...).Scan(&watch.ID, &watch.CreatedAt)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return w.DB.QueryRowContext(ctx, query, args...).Scan(&watch.ID, &watch.CreatedAt, &watch.Version)
 }
 
 func (w WatchModel) Get(id int64) (*Watch, error) {
@@ -77,12 +82,15 @@ func (w WatchModel) Get(id int64) (*Watch, error) {
 	}
 
 	query := `SELECT id, created_at, brand, model, dial_color, strap_type,
-       diameter, energy, gender, price, image_url 
+       diameter, energy, gender, price, image_url, version 
 			FROM watches WHERE id = $1`
 
 	var watch Watch
 
-	err := w.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := w.DB.QueryRowContext(ctx, query, id).Scan(
 		&watch.ID,
 		&watch.CreatedAt,
 		&watch.Brand,
@@ -94,6 +102,7 @@ func (w WatchModel) Get(id int64) (*Watch, error) {
 		&watch.Gender,
 		&watch.Price,
 		&watch.ImageURL,
+		&watch.Version,
 	)
 	if err != nil {
 		switch {
@@ -111,9 +120,10 @@ func (w WatchModel) Update(watch *Watch) error {
 	query := `UPDATE watches
 				SET brand = $1, model = $2, dial_color = $3,
 				    strap_type = $4, diameter = $5, energy = $6,
-				    gender = $7, price = $8, image_url = $9
-				    WHERE id = $10
-				    RETURNING id`
+				    gender = $7, price = $8, image_url = $9,
+				    version = version + 1
+				    WHERE id = $10 AND version = $11
+				    RETURNING version`
 
 	args := []interface{}{
 		watch.Brand,
@@ -126,9 +136,23 @@ func (w WatchModel) Update(watch *Watch) error {
 		watch.Price,
 		watch.ImageURL,
 		watch.ID,
+		watch.Version,
 	}
 
-	return w.DB.QueryRow(query, args...).Scan(&watch.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := w.DB.QueryRowContext(ctx, query, args...).Scan(&watch.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (w WatchModel) Delete(id int64) error {
@@ -138,7 +162,10 @@ func (w WatchModel) Delete(id int64) error {
 
 	query := `DELETE FROM watches WHERE id = $1`
 
-	result, err := w.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := w.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -153,6 +180,53 @@ func (w WatchModel) Delete(id int64) error {
 	}
 
 	return nil
+}
+
+func (w WatchModel) GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error) {
+	query := `SELECT id, created_at, brand, model, dial_color, strap_type,
+       diameter, energy, gender, price, image_url, version
+		FROM watches ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := w.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	watches := []*Watch{}
+
+	for rows.Next() {
+		var watch Watch
+
+		err := rows.Scan(
+			&watch.ID,
+			&watch.CreatedAt,
+			&watch.Brand,
+			&watch.Model,
+			&watch.DialColor,
+			&watch.StrapType,
+			&watch.Diameter,
+			&watch.Energy,
+			&watch.Gender,
+			&watch.Price,
+			&watch.ImageURL,
+			&watch.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		watches = append(watches, &watch)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return watches, nil
 }
 
 type MockWatchModel struct{}
@@ -171,4 +245,8 @@ func (m MockWatchModel) Update(watch *Watch) error {
 
 func (m MockWatchModel) Delete(id int64) error {
 	return nil
+}
+
+func (w MockWatchModel) GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error) {
+	return nil, nil
 }

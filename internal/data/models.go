@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrEditConflict   = errors.New("edit conflict")
 )
 
 type Models struct {
@@ -15,6 +16,7 @@ type Models struct {
 		Get(id int64) (*Watch, error)
 		Update(watch *Watch) error
 		Delete(id int64) error
+		GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error)
 	}
 }
 
