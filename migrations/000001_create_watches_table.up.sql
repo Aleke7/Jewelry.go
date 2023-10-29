@@ -8,5 +8,7 @@ CREATE TABLE IF NOT EXISTS watches (
     diameter INT NOT NULL,
     energy TEXT NOT NULL,
     gender TEXT NOT NULL,
-    price FLOAT NOT NULL
+    price FLOAT NOT NULL,
+    image_url TEXT NOT NULL
 );
+

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/lib/pq"
+	"jewelry.abgdrv.com/internal/data"
 	"log"
 	"net/http"
 	"os"
@@ -31,6 +32,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func main() {
@@ -77,7 +79,11 @@ func main() {
 	logger.Printf("database connection pool established")
 
 	// Declare instance of application
-	app := application{config: cfg, logger: logger}
+	app := application{
+		config: cfg,
+		logger: logger,
+		models: data.NewModels(db),
+	}
 
 	// Declare HTTP server
 	srv := http.Server{

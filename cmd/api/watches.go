@@ -20,6 +20,7 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 		Energy    string  `json:"energy"`
 		Gender    string  `json:"gender"`
 		Price     float64 `json:"price"`
+		ImageURL  string  `json:"image_url"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -28,7 +29,7 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	watch := data.Watch{
+	watch := &data.Watch{
 		Brand:     input.Brand,
 		Model:     input.Model,
 		DialColor: input.DialColor,
@@ -37,6 +38,7 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 		Energy:    input.Energy,
 		Gender:    input.Gender,
 		Price:     input.Price,
+		ImageURL:  input.ImageURL,
 	}
 
 	v := validator.New()
@@ -44,6 +46,20 @@ func (app *application) createWatchHandler(w http.ResponseWriter, r *http.Reques
 	if data.ValidateWatch(v, watch); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
+	}
+
+	err = app.models.Watches.Insert(watch)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/watches/%d", watch.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"watch": watch}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 	}
 
 	fmt.Fprintf(w, "%+v\n", input)
@@ -68,6 +84,7 @@ func (app *application) showWatchHandler(w http.ResponseWriter, r *http.Request)
 		Energy:    "Mechanical",
 		Gender:    "Male",
 		Price:     9999.99,
+		ImageURL:  "https://shorturl.at/qDKN1",
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"watch": watch}, nil)
