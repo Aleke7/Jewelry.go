@@ -1,11 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"jewelry.abgdrv.com/internal/data"
 	"jewelry.abgdrv.com/internal/validator"
 	"net/http"
-	"time"
 )
 
 // POST "/v1/watches"
@@ -73,21 +73,106 @@ func (app *application) showWatchHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	watch := data.Watch{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Brand:     "Rolex",
-		Model:     "Submariner",
-		DialColor: "Black",
-		StrapType: "Stainless Steel",
-		Diameter:  40,
-		Energy:    "Mechanical",
-		Gender:    "Male",
-		Price:     9999.99,
-		ImageURL:  "https://shorturl.at/qDKN1",
+	watch, err := app.models.Watches.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"watch": watch}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateWatchHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	watch, err := app.models.Watches.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Brand     string  `json:"brand"`
+		Model     string  `json:"model,omitempty"`
+		DialColor string  `json:"dial_color"`
+		StrapType string  `json:"strap_type"`
+		Diameter  int64   `json:"diameter"`
+		Energy    string  `json:"energy"`
+		Gender    string  `json:"gender"`
+		Price     float64 `json:"price"`
+		ImageURL  string  `json:"image_url"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	watch.Brand = input.Brand
+	watch.Model = input.Model
+	watch.DialColor = input.DialColor
+	watch.StrapType = input.StrapType
+	watch.Diameter = input.Diameter
+	watch.Energy = input.Energy
+	watch.Gender = input.Gender
+	watch.Price = input.Price
+	watch.ImageURL = input.ImageURL
+
+	v := validator.New()
+	if data.ValidateWatch(v, watch); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Watches.Update(watch)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"watch": watch}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	err = app.models.Watches.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "watch successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

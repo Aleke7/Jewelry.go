@@ -12,3 +12,7 @@ CREATE TABLE IF NOT EXISTS watches (
     image_url TEXT NOT NULL
 );
 
+GRANT ALL PRIVILEGES ON watches TO watch_admin;
+
+GRANT ALL PRIVILEGES ON SCHEMA public TO watch_admin;
+GRANT ALL PRIVILEGES ON SEQUENCE watches_id_seq TO watch_admin;
