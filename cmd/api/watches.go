@@ -212,6 +212,10 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 	var input struct {
 		Brand     string
 		DialColor string
+		StrapType string
+		Diameter  int8
+		Energy    string
+		Gender    string
 		Filters   data.Filters
 	}
 
@@ -221,6 +225,10 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 
 	input.Brand = app.readString(qs, "brand", "")
 	input.DialColor = app.readString(qs, "dial_color", "")
+	input.StrapType = app.readString(qs, "strap_type", "")
+	input.Diameter = int8(app.readInt(qs, "diameter", 0, v))
+	input.Energy = app.readString(qs, "energy", "")
+	input.Gender = app.readString(qs, "gender", "")
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
@@ -233,7 +241,14 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	watches, err := app.models.Watches.GetAll(input.Brand, input.DialColor, input.Filters)
+	watches, err := app.models.Watches.GetAll(
+		input.Brand,
+		input.DialColor,
+		input.StrapType,
+		input.Diameter,
+		input.Energy,
+		input.Gender,
+		input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

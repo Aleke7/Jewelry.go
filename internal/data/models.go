@@ -16,7 +16,13 @@ type Models struct {
 		Get(id int64) (*Watch, error)
 		Update(watch *Watch) error
 		Delete(id int64) error
-		GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error)
+		GetAll(brand string,
+			dialColor string,
+			strapType string,
+			diameter int8,
+			energy string,
+			gender string,
+			filters Filters) ([]*Watch, error)
 	}
 }
 

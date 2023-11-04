@@ -182,15 +182,30 @@ func (w WatchModel) Delete(id int64) error {
 	return nil
 }
 
-func (w WatchModel) GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error) {
+func (w WatchModel) GetAll(
+	brand string,
+	dialColor string,
+	strapType string,
+	diameter int8,
+	energy string,
+	gender string,
+	filters Filters) ([]*Watch, error) {
 	query := `SELECT id, created_at, brand, model, dial_color, strap_type,
        diameter, energy, gender, price, image_url, version
-		FROM watches ORDER BY id`
+		FROM watches 
+		WHERE (LOWER(brand) = LOWER($1) OR $1 = '')
+		AND (LOWER(dial_color) = LOWER($2) OR $2 = '')
+		AND (LOWER(strap_type) = LOWER($3) OR $3 = '')
+		AND (diameter = $4 OR $4 = 0)
+		AND (LOWER(energy) = LOWER($5) OR $5 = '')
+		AND (LOWER(gender) = LOWER($6) OR $6 = '')
+		ORDER BY id`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := w.DB.QueryContext(ctx, query)
+	rows, err := w.DB.QueryContext(ctx, query,
+		brand, dialColor, strapType, diameter, energy, gender)
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +262,13 @@ func (m MockWatchModel) Delete(id int64) error {
 	return nil
 }
 
-func (w MockWatchModel) GetAll(brand string, dialColor string, filters Filters) ([]*Watch, error) {
+func (w MockWatchModel) GetAll(
+	brand string,
+	dialColor string,
+	strapType string,
+	diameter int8,
+	energy string,
+	gender string,
+	filters Filters) ([]*Watch, error) {
 	return nil, nil
 }
