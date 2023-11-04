@@ -16,3 +16,5 @@ CREATE TABLE IF NOT EXISTS watches (
 GRANT ALL PRIVILEGES ON watches TO watch_admin;
 GRANT ALL PRIVILEGES ON SCHEMA public TO watch_admin;
 GRANT ALL PRIVILEGES ON SEQUENCE watches_id_seq TO watch_admin;
+ALTER DATABASE watch_database OWNER TO watch_admin;
+ALTER TABLE watches OWNER TO watch_admin;

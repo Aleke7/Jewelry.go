@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"jewelry.abgdrv.com/internal/validator"
 	"strings"
 	"time"
@@ -191,17 +192,18 @@ func (w WatchModel) GetAll(
 	gender string,
 	priceRange []int,
 	filters Filters) ([]*Watch, error) {
-	query := `SELECT id, created_at, brand, model, dial_color, strap_type,
-       diameter, energy, gender, price, image_url, version
+	query := fmt.Sprintf(`
+		SELECT id, created_at, brand, model, dial_color, strap_type,
+		       diameter, energy, gender, price, image_url, version
 		FROM watches 
-		WHERE (LOWER(brand) = LOWER($1) OR $1 = '')
-		AND (LOWER(dial_color) = LOWER($2) OR $2 = '')
-		AND (LOWER(strap_type) = LOWER($3) OR $3 = '')
+		WHERE (to_tsvector('simple', brand) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		AND (to_tsvector('simple', dial_color) @@ plainto_tsquery('simple', $2) OR $2 = '')
+		AND (to_tsvector('simple', strap_type) @@ plainto_tsquery('simple', $3) OR $3 = '')
 		AND (diameter = $4 OR $4 = 0)
-		AND (LOWER(energy) = LOWER($5) OR $5 = '')
-		AND (LOWER(gender) = LOWER($6) OR $6 = '')
+		AND (to_tsvector('simple', energy) @@ plainto_tsquery('simple', $5) OR $5 = '')
+		AND (to_tsvector('simple', gender) @@ plainto_tsquery('simple', $6) OR $6 = '')
 		AND (price BETWEEN $7 AND $8)
-		ORDER BY id`
+		ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
