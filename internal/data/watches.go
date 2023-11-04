@@ -189,6 +189,7 @@ func (w WatchModel) GetAll(
 	diameter int8,
 	energy string,
 	gender string,
+	priceRange []int,
 	filters Filters) ([]*Watch, error) {
 	query := `SELECT id, created_at, brand, model, dial_color, strap_type,
        diameter, energy, gender, price, image_url, version
@@ -199,13 +200,23 @@ func (w WatchModel) GetAll(
 		AND (diameter = $4 OR $4 = 0)
 		AND (LOWER(energy) = LOWER($5) OR $5 = '')
 		AND (LOWER(gender) = LOWER($6) OR $6 = '')
+		AND (price BETWEEN $7 AND $8)
 		ORDER BY id`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := w.DB.QueryContext(ctx, query,
-		brand, dialColor, strapType, diameter, energy, gender)
+	rows, err := w.DB.QueryContext(
+		ctx,
+		query,
+		brand,
+		dialColor,
+		strapType,
+		diameter,
+		energy,
+		gender,
+		priceRange[0],
+		priceRange[1])
 	if err != nil {
 		return nil, err
 	}
@@ -269,6 +280,7 @@ func (w MockWatchModel) GetAll(
 	diameter int8,
 	energy string,
 	gender string,
+	priceRange []int,
 	filters Filters) ([]*Watch, error) {
 	return nil, nil
 }

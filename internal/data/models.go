@@ -22,6 +22,7 @@ type Models struct {
 			diameter int8,
 			energy string,
 			gender string,
+			priceRange []int,
 			filters Filters) ([]*Watch, error)
 	}
 }

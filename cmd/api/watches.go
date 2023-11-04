@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jewelry.abgdrv.com/internal/data"
 	"jewelry.abgdrv.com/internal/validator"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -210,13 +211,14 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Brand     string
-		DialColor string
-		StrapType string
-		Diameter  int8
-		Energy    string
-		Gender    string
-		Filters   data.Filters
+		Brand      string
+		DialColor  string
+		StrapType  string
+		Diameter   int8
+		Energy     string
+		Gender     string
+		PriceRange []int
+		Filters    data.Filters
 	}
 
 	v := validator.New()
@@ -229,6 +231,22 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 	input.Diameter = int8(app.readInt(qs, "diameter", 0, v))
 	input.Energy = app.readString(qs, "energy", "")
 	input.Gender = app.readString(qs, "gender", "")
+	stringSlice := app.readCSV(qs, "price_range", []string{})
+	intSlice := make([]int, len(stringSlice))
+	for i, str := range stringSlice {
+		num, err := strconv.Atoi(str)
+		if err != nil {
+			fmt.Printf("Error converting string to int: %v\n", err)
+			return
+		}
+		intSlice[i] = num
+	}
+
+	if len(intSlice) == 2 {
+		input.PriceRange = intSlice
+	} else {
+		input.PriceRange = []int{0, math.MaxInt}
+	}
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
@@ -248,6 +266,7 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 		input.Diameter,
 		input.Energy,
 		input.Gender,
+		input.PriceRange,
 		input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
