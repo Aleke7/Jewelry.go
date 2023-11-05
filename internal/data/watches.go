@@ -191,9 +191,9 @@ func (w WatchModel) GetAll(
 	energy string,
 	gender string,
 	priceRange []int,
-	filters Filters) ([]*Watch, error) {
+	filters Filters) ([]*Watch, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT id, created_at, brand, model, dial_color, strap_type,
+		SELECT count(*) OVER(), id, created_at, brand, model, dial_color, strap_type,
 		       diameter, energy, gender, price, image_url, version
 		FROM watches 
 		WHERE (to_tsvector('simple', brand) @@ plainto_tsquery('simple', $1) OR $1 = '')
@@ -203,14 +203,13 @@ func (w WatchModel) GetAll(
 		AND (to_tsvector('simple', energy) @@ plainto_tsquery('simple', $5) OR $5 = '')
 		AND (to_tsvector('simple', gender) @@ plainto_tsquery('simple', $6) OR $6 = '')
 		AND (price BETWEEN $7 AND $8)
-		ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
+		ORDER BY %s %s, id ASC
+		LIMIT $9 OFFSET $10`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := w.DB.QueryContext(
-		ctx,
-		query,
+	args := []interface{}{
 		brand,
 		dialColor,
 		strapType,
@@ -218,18 +217,25 @@ func (w WatchModel) GetAll(
 		energy,
 		gender,
 		priceRange[0],
-		priceRange[1])
+		priceRange[1],
+		filters.limit(),
+		filters.offset(),
+	}
+
+	rows, err := w.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	defer rows.Close()
 
+	totalRecords := 0
 	watches := []*Watch{}
 
 	for rows.Next() {
 		var watch Watch
 
 		err := rows.Scan(
+			&totalRecords,
 			&watch.ID,
 			&watch.CreatedAt,
 			&watch.Brand,
@@ -244,17 +250,19 @@ func (w WatchModel) GetAll(
 			&watch.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		watches = append(watches, &watch)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
-	return watches, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return watches, metadata, nil
 }
 
 type MockWatchModel struct{}
@@ -283,6 +291,6 @@ func (w MockWatchModel) GetAll(
 	energy string,
 	gender string,
 	priceRange []int,
-	filters Filters) ([]*Watch, error) {
-	return nil, nil
+	filters Filters) ([]*Watch, Metadata, error) {
+	return nil, Metadata{}, nil
 }

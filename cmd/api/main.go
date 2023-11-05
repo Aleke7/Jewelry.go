@@ -7,7 +7,7 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"jewelry.abgdrv.com/internal/data"
-	"log"
+	"jewelry.abgdrv.com/internal/jsonlog"
 	"net/http"
 	"os"
 	"time"
@@ -31,7 +31,7 @@ type config struct {
 // Application struct to hold HTTP handlers, helpers, middleware
 type application struct {
 	config config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	models data.Models
 }
 
@@ -67,16 +67,16 @@ func main() {
 	flag.Parse()
 
 	// Initialization of logger (recording information about the execution of an application)
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	db, err := openDB(cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 
 	defer db.Close()
 
-	logger.Printf("database connection pool established")
+	logger.PrintInfo("database connection pool established", nil)
 
 	// Declare instance of application
 	app := application{
@@ -95,10 +95,14 @@ func main() {
 	}
 
 	// Start HTTP server
-	logger.Printf("starting %s server on %s", cfg.env, srv.Addr)
-	err = srv.ListenAndServe()
-	logger.Fatal(err)
+	logger.PrintInfo("starting server", map[string]string{
+		"addr": srv.Addr,
+		"env":  cfg.env,
+	})
 
+	err = srv.ListenAndServe()
+
+	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {

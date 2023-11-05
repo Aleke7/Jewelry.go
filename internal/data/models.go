@@ -23,7 +23,7 @@ type Models struct {
 			energy string,
 			gender string,
 			priceRange []int,
-			filters Filters) ([]*Watch, error)
+			filters Filters) ([]*Watch, Metadata, error)
 	}
 }
 

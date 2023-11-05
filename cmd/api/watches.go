@@ -259,7 +259,7 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	watches, err := app.models.Watches.GetAll(
+	watches, metadata, err := app.models.Watches.GetAll(
 		input.Brand,
 		input.DialColor,
 		input.StrapType,
@@ -273,7 +273,9 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"watches": watches}, nil)
+	err = app.writeJSON(w, http.StatusOK,
+		envelope{"watches": watches, "metadata": metadata},
+		nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
