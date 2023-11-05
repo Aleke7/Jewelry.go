@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (app *application) routes() *httprouter.Router {
+func (app *application) routes() http.Handler {
 	// Init new httprouter
 	router := httprouter.New()
 
@@ -20,5 +20,5 @@ func (app *application) routes() *httprouter.Router {
 	router.HandlerFunc(http.MethodPatch, "/v1/watches/:id", app.updateWatchHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/watches/:id", app.deleteMovieHandler)
 
-	return router
+	return app.recoverPanic(app.rateLimit(router))
 }

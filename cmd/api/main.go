@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
 	_ "github.com/lib/pq"
 	"jewelry.abgdrv.com/internal/data"
 	"jewelry.abgdrv.com/internal/jsonlog"
-	"net/http"
 	"os"
 	"time"
 )
@@ -25,6 +23,11 @@ type config struct {
 		maxOpenConns int
 		maxIdleConns int
 		maxIdleTime  string
+	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
 	}
 }
 
@@ -64,6 +67,19 @@ func main() {
 		"15m",
 		"PostgreSQL max connection idle time")
 
+	flag.Float64Var(&cfg.limiter.rps,
+		"limiter-rps",
+		2,
+		"Rate limiter maximum requests per second")
+	flag.IntVar(&cfg.limiter.burst,
+		"limiter-burst",
+		4,
+		"Rate limiter maximum burst")
+	flag.BoolVar(&cfg.limiter.enabled,
+		"limiter-enabled",
+		true,
+		"Enable rate limiter")
+
 	flag.Parse()
 
 	// Initialization of logger (recording information about the execution of an application)
@@ -85,24 +101,11 @@ func main() {
 		models: data.NewModels(db),
 	}
 
-	// Declare HTTP server
-	srv := http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+	err = app.serve()
+	if err != nil {
+		logger.PrintFatal(err, nil)
 	}
 
-	// Start HTTP server
-	logger.PrintInfo("starting server", map[string]string{
-		"addr": srv.Addr,
-		"env":  cfg.env,
-	})
-
-	err = srv.ListenAndServe()
-
-	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
