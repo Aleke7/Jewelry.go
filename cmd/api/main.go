@@ -7,7 +7,9 @@ import (
 	_ "github.com/lib/pq"
 	"jewelry.abgdrv.com/internal/data"
 	"jewelry.abgdrv.com/internal/jsonlog"
+	"jewelry.abgdrv.com/internal/mailer"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -29,6 +31,13 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 // Application struct to hold HTTP handlers, helpers, middleware
@@ -36,6 +45,8 @@ type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -80,6 +91,27 @@ func main() {
 		true,
 		"Enable rate limiter")
 
+	flag.StringVar(&cfg.smtp.host,
+		"smtp-host",
+		"sandbox.smtp.mailtrap.io",
+		"SMTP host")
+	flag.IntVar(&cfg.smtp.port,
+		"smtp-port",
+		25,
+		"SMTP port")
+	flag.StringVar(&cfg.smtp.username,
+		"smtp-username",
+		"f144a7aa352bc4",
+		"SMTP username")
+	flag.StringVar(&cfg.smtp.password,
+		"smtp-password",
+		"ddf324cb70a817",
+		"SMTP password")
+	flag.StringVar(&cfg.smtp.sender,
+		"smtp-sender",
+		"watch.me <no-reply@watch.me.abgdrv.net>",
+		"SMTP sender")
+
 	flag.Parse()
 
 	// Initialization of logger (recording information about the execution of an application)
@@ -99,6 +131,11 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host,
+			cfg.smtp.port,
+			cfg.smtp.username,
+			cfg.smtp.password,
+			cfg.smtp.sender),
 	}
 
 	err = app.serve()

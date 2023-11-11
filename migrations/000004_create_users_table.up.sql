@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
     activated bool NOT NULL,
     version integer NOT NULL DEFAULT 1
 );
+
+GRANT ALL PRIVILEGES ON users TO watch_admin;
+GRANT ALL PRIVILEGES ON users_id_seq TO watch_admin;
