@@ -265,32 +265,32 @@ func (w WatchModel) GetAll(
 	return watches, metadata, nil
 }
 
-type MockWatchModel struct{}
-
-func (m MockWatchModel) Insert(watch *Watch) error {
-	return nil
-}
-
-func (m MockWatchModel) Get(id int64) (*Watch, error) {
-	return nil, nil
-}
-
-func (m MockWatchModel) Update(watch *Watch) error {
-	return nil
-}
-
-func (m MockWatchModel) Delete(id int64) error {
-	return nil
-}
-
-func (w MockWatchModel) GetAll(
-	brand string,
-	dialColor string,
-	strapType string,
-	diameter int8,
-	energy string,
-	gender string,
-	priceRange []int,
-	filters Filters) ([]*Watch, Metadata, error) {
-	return nil, Metadata{}, nil
-}
+//type MockWatchModel struct{}
+//
+//func (m MockWatchModel) Insert(watch *Watch) error {
+//	return nil
+//}
+//
+//func (m MockWatchModel) Get(id int64) (*Watch, error) {
+//	return nil, nil
+//}
+//
+//func (m MockWatchModel) Update(watch *Watch) error {
+//	return nil
+//}
+//
+//func (m MockWatchModel) Delete(id int64) error {
+//	return nil
+//}
+//
+//func (w MockWatchModel) GetAll(
+//	brand string,
+//	dialColor string,
+//	strapType string,
+//	diameter int8,
+//	energy string,
+//	gender string,
+//	priceRange []int,
+//	filters Filters) ([]*Watch, Metadata, error) {
+//	return nil, Metadata{}, nil
+//}

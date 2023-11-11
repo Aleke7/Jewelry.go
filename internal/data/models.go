@@ -11,30 +11,19 @@ var (
 )
 
 type Models struct {
-	Watches interface {
-		Insert(watch *Watch) error
-		Get(id int64) (*Watch, error)
-		Update(watch *Watch) error
-		Delete(id int64) error
-		GetAll(brand string,
-			dialColor string,
-			strapType string,
-			diameter int8,
-			energy string,
-			gender string,
-			priceRange []int,
-			filters Filters) ([]*Watch, Metadata, error)
-	}
+	Watches WatchModel
+	Users   UserModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Watches: WatchModel{DB: db},
+		Users:   UserModel{DB: db},
 	}
 }
 
-func NewMockModels() Models {
-	return Models{
-		Watches: MockWatchModel{},
-	}
-}
+//func NewMockModels() Models {
+//	return Models{
+//		Watches: MockWatchModel{},
+//	}
+//}

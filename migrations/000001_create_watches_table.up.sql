@@ -1,16 +1,16 @@
 CREATE TABLE IF NOT EXISTS watches (
-    id BIGSERIAL PRIMARY KEY,
-    created_at TIMESTAMP(0) with time zone NOT NULL DEFAULT NOW(),
-    brand TEXT NULL,
-    model TEXT NULL,
-    dial_color TEXT NOT NULL,
-    strap_type TEXT NOT NULL,
-    diameter INT NOT NULL,
-    energy TEXT NOT NULL,
-    gender TEXT NOT NULL,
-    price FLOAT NOT NULL,
-    image_url TEXT NOT NULL,
-    version INT NOT NULL DEFAULT 1
+    id bigserial PRIMARY KEY,
+    created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    brand text NULL,
+    model text NULL,
+    dial_color text NOT NULL,
+    strap_type text NOT NULL,
+    diameter integer NOT NULL,
+    energy text NOT NULL,
+    gender text NOT NULL,
+    price float NOT NULL,
+    image_url text NOT NULL,
+    version integer NOT NULL DEFAULT 1
 );
 
 GRANT ALL PRIVILEGES ON watches TO watch_admin;
