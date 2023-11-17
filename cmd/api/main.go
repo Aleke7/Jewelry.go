@@ -9,6 +9,7 @@ import (
 	"jewelry.abgdrv.com/internal/jsonlog"
 	"jewelry.abgdrv.com/internal/mailer"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -37,6 +38,9 @@ type config struct {
 		username string
 		password string
 		sender   string
+	}
+	cors struct {
+		trustedOrigins []string
 	}
 }
 
@@ -109,8 +113,15 @@ func main() {
 		"SMTP password")
 	flag.StringVar(&cfg.smtp.sender,
 		"smtp-sender",
-		"watch.me <no-reply@watch.me.abgdrv.net>",
+		"watch.me <no-reply@watch.me.abgdrv.com>",
 		"SMTP sender")
+
+	flag.Func("cors-trusted-origins",
+		"Trusted CORS origins (space separated)",
+		func(val string) error {
+			cfg.cors.trustedOrigins = strings.Fields(val)
+			return nil
+		})
 
 	flag.Parse()
 
