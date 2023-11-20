@@ -6,7 +6,9 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base32"
+	"fmt"
 	"jewelry.abgdrv.com/internal/validator"
+	rand2 "math/rand"
 	"time"
 )
 
@@ -30,6 +32,15 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 		Scope:  scope,
 	}
 
+	if scope == ScopeActivation {
+		randNum := rand2.Intn(10000)
+		randNumString := fmt.Sprintf("%04d", randNum)
+		token.Plaintext = randNumString
+		hash := sha256.Sum256([]byte(token.Plaintext))
+		token.Hash = hash[:]
+		return token, nil
+	}
+
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
@@ -46,6 +57,9 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 
 func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
 	v.Check(tokenPlaintext != "", "token", "must be provided")
+	if len(tokenPlaintext) == 4 {
+		return
+	}
 	v.Check(len(tokenPlaintext) == 26, "token", "must be 26 bytes long")
 }
 
