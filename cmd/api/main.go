@@ -65,8 +65,9 @@ func main() {
 		"development",
 		"Environment (development|staging|production)")
 
+	// "postgres://watch_admin:watch@localhost/watch_database?sslmode=disable",
 	flag.StringVar(&cfg.db.dsn, "db-dsn",
-		"postgres://watch_admin:watch@localhost/watch_database?sslmode=disable",
+		"postgres://watch_admin:watch@db:5432/watch_database?sslmode=disable",
 		"PostgreSQL DSN")
 
 	flag.IntVar(&cfg.db.maxOpenConns,
