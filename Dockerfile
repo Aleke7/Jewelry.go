@@ -15,7 +15,7 @@ COPY . .
 
 RUN go build -o main ./cmd/api/
 
-CMD ["sh", "-c", "migrate -path ./migrations -database postgres://watch_admin:watch@db:5432/watch_database?sslmode=disable up && ./main"]
+CMD ["sh", "-c", "migrate -path ./migrations -database postgres://watch_admin:watch@db:5433/watch_database?sslmode=disable up && ./main"]
 
 
 #FROM golang:1.21
