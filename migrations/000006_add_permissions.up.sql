@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS users_permissions (
 );
 
 INSERT INTO permissions (code)
-VALUES ('movies:read'),
-       ('movies:write');
+VALUES ('watches:read'),
+       ('watches:write');
 
 
 -- UPDATE users SET activated = true WHERE email = 'alice@example.com';
