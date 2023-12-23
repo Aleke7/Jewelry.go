@@ -23,7 +23,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/watches/:id",
 		app.requirePermission("watches:write", app.updateWatchHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/watches/:id",
-		app.requirePermission("watches:write", app.deleteMovieHandler))
+		app.requirePermission("watches:write", app.deleteWatchHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)

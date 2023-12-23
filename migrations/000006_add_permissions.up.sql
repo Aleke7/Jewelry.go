@@ -19,9 +19,7 @@ VALUES ('watches:read'),
 -- INSERT INTO users_permissions
 -- SELECT id, (SELECT id FROM permissions WHERE code = 'movies:read') FROM users;
 -- -- Give faith@example.com the 'movies:write' permission
--- INSERT INTO users_permissions VALUES (
---                                          (SELECT id FROM users WHERE email = 'faith@example.com'),
---                                          (SELECT id FROM permissions WHERE code = 'movies:write') );
+INSERT INTO users_permissions VALUES (1, 2);
 -- -- List all activated users and their permissions.
 -- SELECT email, array_agg(permissions.code) as permissions
 -- FROM permissions

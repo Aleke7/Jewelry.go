@@ -185,7 +185,7 @@ func (app *application) updateWatchHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) deleteWatchHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -279,6 +279,4 @@ func (app *application) listWatchesHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-
-	fmt.Fprintf(w, "%+v\n", input)
 }
